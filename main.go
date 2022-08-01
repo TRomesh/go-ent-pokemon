@@ -118,5 +118,39 @@ func main() {
 		return c.Status(200).JSON(pokemon)
 	})
 
+	app.Post("/create/battle", func(c *fiber.Ctx) error {
+		payload := struct {
+			Result    string `json:"result"`
+			Contender int    `json:"contender"`
+			Oponent   int    `json:"oponent"`
+		}{}
+
+		if err := c.BodyParser(&payload); err != nil {
+			return err
+		}
+
+		battle, err := client.Battle.
+			Create().
+			SetResult(payload.Result).
+			SetContenderID(payload.Contender).
+			SetOponentID(payload.Oponent).
+			Save(ctx)
+		if err != nil {
+			return fmt.Errorf("failed creating battle: %w", err)
+		}
+		log.Println("battle created: ", battle)
+		return c.Status(200).JSON(battle)
+	})
+
+	app.Get("/all/battle", func(c *fiber.Ctx) error {
+		battles, err := client.Battle.Query().WithContender().WithOponent().All(ctx)
+		if err != nil {
+			return fmt.Errorf("failed querying battles: %w", err)
+		}
+		log.Println("returned battles:", battles)
+
+		return c.Status(200).JSON(battles)
+	})
+
 	log.Fatal(app.Listen(fmt.Sprintf(":%s", viper.Get("APP_PORT"))))
 }
